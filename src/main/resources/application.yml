@@ -1,0 +1,45 @@
+spring:
+  application:
+    name: SmartScheduler
+  profiles:
+    active: dev
+  jackson:
+    time-zone: Asia/Shanghai
+    date-format: yyyy-MM-dd HH:mm:ss
+    serialization:
+      write-dates-as-timestamps: false
+  datasource:
+    hikari:
+      pool-name: SmartSchedulerHikari
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 20000
+      validation-timeout: 5000
+      idle-timeout: 300000
+      # 云 MySQL / 防火墙常在数分钟内断开空闲连接，max-lifetime 需短于服务端 wait_timeout
+      max-lifetime: 240000
+      keepalive-time: 60000
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: Asia/Shanghai
+
+server:
+  port: ${SERVER_PORT:50060}
+
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+
+scheduler:
+  timezone: Asia/Shanghai
+  work-day-start: "08:00"
+  work-day-end: "22:00"
+  default-exam-duration-minutes: 120

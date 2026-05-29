@@ -1,0 +1,22 @@
+server:
+  port: 50060
+
+spring:
+  datasource:
+    # 云服务器 MySQL，可通过环境变量覆盖：DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD
+    url: jdbc:mysql://${DB_HOST:1.94.210.192}:${DB_PORT:3306}/${DB_NAME:smart_scheduler}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&tcpKeepAlive=true&connectTimeout=10000&socketTimeout=60000
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:123456}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      # 首次部署设为 always 执行建表与模拟数据；之后可改为 never 避免重复插入
+      mode: ${SPRING_SQL_INIT_MODE:never}
+      continue-on-error: true
+      schema-locations: classpath:db/schema.sql
+      data-locations: classpath:db/data.sql
+
+logging:
+  level:
+    com.scheduler: DEBUG
+    org.hibernate.SQL: WARN

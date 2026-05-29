@@ -1,0 +1,17 @@
+server:
+  port: 50060
+
+spring:
+  datasource:
+    url: ${DB_URL:jdbc:mysql://mysql:3306/smart_scheduler?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&tcpKeepAlive=true&connectTimeout=10000&socketTimeout=60000}
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:root}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+  sql:
+    init:
+      mode: never
+
+logging:
+  level:
+    com.scheduler: INFO
+    root: WARN
