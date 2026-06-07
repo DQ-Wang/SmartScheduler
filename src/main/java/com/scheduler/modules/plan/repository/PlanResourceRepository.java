@@ -8,4 +8,6 @@ import java.util.List;
 public interface PlanResourceRepository extends JpaRepository<PlanResourceEntity, Long> {
 
     List<PlanResourceEntity> findByPlanItemCode(String planItemCode);
+
+    void deleteByPlanItemCode(String planItemCode);
 }

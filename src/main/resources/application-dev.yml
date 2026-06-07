@@ -4,7 +4,7 @@ server:
 spring:
   datasource:
     # 云服务器 MySQL，可通过环境变量覆盖：DB_HOST / DB_PORT / DB_NAME / DB_USERNAME / DB_PASSWORD
-    url: jdbc:mysql://${DB_HOST:1.94.210.192}:${DB_PORT:3306}/${DB_NAME:smart_scheduler}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&tcpKeepAlive=true&connectTimeout=10000&socketTimeout=60000
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:smart_scheduler}?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true&useSSL=false&tcpKeepAlive=true&connectTimeout=10000&socketTimeout=60000
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:123456}
     driver-class-name: com.mysql.cj.jdbc.Driver

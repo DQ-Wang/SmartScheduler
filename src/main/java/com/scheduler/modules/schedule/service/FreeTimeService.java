@@ -18,7 +18,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
@@ -42,13 +41,10 @@ public class FreeTimeService {
             throw new IllegalArgumentException("结束日期不能早于开始日期");
         }
 
-        LocalTime workStart = LocalTime.parse(properties.getWorkDayStart());
-        LocalTime workEnd = LocalTime.parse(properties.getWorkDayEnd());
-
         List<FreeTimeSlotVO> result = new ArrayList<>();
         for (LocalDate date = rangeStart; !date.isAfter(rangeEnd); date = date.plusDays(1)) {
-            LocalDateTime dayWindowStart = date.atTime(workStart);
-            LocalDateTime dayWindowEnd = date.atTime(workEnd);
+            LocalDateTime dayWindowStart = date.atStartOfDay();
+            LocalDateTime dayWindowEnd = date.plusDays(1).atStartOfDay();
             List<TimeInterval> busy = collectBusyIntervals(date, dayWindowStart, dayWindowEnd);
             List<TimeInterval> mergedBusy = TimeIntervalMerger.merge(busy);
             List<TimeInterval> freeIntervals = TimeIntervalMerger.subtract(dayWindowStart, dayWindowEnd, mergedBusy);
@@ -84,15 +80,12 @@ public class FreeTimeService {
             }
         }
 
-        List<PlanItemEntity> plans = planItemRepository.findByStartTimeBetween(
-                dayWindowStart.minusDays(1), dayWindowEnd.plusDays(1));
+        List<PlanItemEntity> plans = planItemRepository.findOverlapping(dayWindowStart, dayWindowEnd);
         for (PlanItemEntity plan : plans) {
             if (plan.getStartTime() == null || plan.getEndTime() == null) {
                 continue;
             }
-            if (overlapsDay(plan.getStartTime(), plan.getEndTime(), date)) {
-                busy.add(clampInterval(plan.getStartTime(), plan.getEndTime(), dayWindowStart, dayWindowEnd));
-            }
+            busy.add(clampInterval(plan.getStartTime(), plan.getEndTime(), dayWindowStart, dayWindowEnd));
         }
 
         List<ExamEntity> exams = examRepository.findAll();

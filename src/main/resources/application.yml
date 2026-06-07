@@ -43,3 +43,8 @@ scheduler:
   work-day-start: "08:00"
   work-day-end: "22:00"
   default-exam-duration-minutes: 120
+
+dify:
+  base-url: https://api.dify.ai/v1
+  api-key: app-HNGZtQifPUKRu297ZEnNkAKO
+  default-user: smart-scheduler

@@ -20,6 +20,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -70,6 +72,50 @@ public class PlanService {
             entities.add(planResourceRepository.save(entity));
         }
         return entities;
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlanItemVO> listPlanItems(LocalDate startDate, LocalDate endDate, String itemCode) {
+        if (StrUtil.isNotBlank(itemCode)) {
+            PlanItemEntity entity = planItemRepository.findByItemCode(itemCode.trim())
+                    .orElseThrow(() -> new BusinessException("计划不存在"));
+            return List.of(toPlanItemVo(entity));
+        }
+
+        LocalDate rangeStart = startDate != null ? startDate : LocalDate.now();
+        LocalDate rangeEnd = endDate != null ? endDate : rangeStart.plusDays(6);
+        if (rangeEnd.isBefore(rangeStart)) {
+            throw new BusinessException(400, "结束日期不能早于开始日期");
+        }
+
+        LocalDateTime windowStart = rangeStart.atStartOfDay();
+        LocalDateTime windowEnd = rangeEnd.plusDays(1).atStartOfDay();
+        return planItemRepository.findOverlapping(windowStart, windowEnd).stream()
+                .map(this::toPlanItemVo)
+                .toList();
+    }
+
+    private PlanItemVO toPlanItemVo(PlanItemEntity entity) {
+        PlanItemVO vo = planConvert.toVo(entity);
+        vo.setResources(planConvert.toResourceVoList(
+                planResourceRepository.findByPlanItemCode(entity.getItemCode())));
+        return vo;
+    }
+
+    @Transactional
+    public PlanItemVO deletePlanItem(String itemCode) {
+        if (StrUtil.isBlank(itemCode)) {
+            throw new BusinessException(400, "itemCode 不能为空");
+        }
+        PlanItemEntity entity = planItemRepository.findByItemCode(itemCode.trim())
+                .orElseThrow(() -> new BusinessException("计划不存在"));
+        PlanItemVO deleted = toPlanItemVo(entity);
+
+        planResourceRepository.deleteByPlanItemCode(entity.getItemCode());
+        timeSlotRepository.deleteByRelationTypeAndRelationCode(
+                RelationType.PLAN.name(), entity.getItemCode());
+        planItemRepository.delete(entity);
+        return deleted;
     }
 
     private void syncPlanTimeSlot(PlanItemEntity plan) {

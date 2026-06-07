@@ -10,4 +10,6 @@ public interface TimeSlotRepository extends JpaRepository<TimeSlotEntity, Long> 
     List<TimeSlotEntity> findByRelationTypeAndRelationCode(String relationType, String relationCode);
 
     List<TimeSlotEntity> findByRelationType(String relationType);
+
+    void deleteByRelationTypeAndRelationCode(String relationType, String relationCode);
 }
