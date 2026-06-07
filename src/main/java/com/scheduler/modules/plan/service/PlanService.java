@@ -111,9 +111,11 @@ public class PlanService {
                 .orElseThrow(() -> new BusinessException("计划不存在"));
         PlanItemVO deleted = toPlanItemVo(entity);
 
-        planResourceRepository.deleteByPlanItemCode(entity.getItemCode());
-        timeSlotRepository.deleteByRelationTypeAndRelationCode(
-                RelationType.PLAN.name(), entity.getItemCode());
+        planResourceRepository.deleteAll(
+                planResourceRepository.findByPlanItemCode(entity.getItemCode()));
+        timeSlotRepository.deleteAll(
+                timeSlotRepository.findByRelationTypeAndRelationCode(
+                        RelationType.PLAN.name(), entity.getItemCode()));
         planItemRepository.delete(entity);
         return deleted;
     }
