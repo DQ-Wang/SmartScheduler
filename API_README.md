@@ -40,7 +40,10 @@
 | 1 | GET | `/api/mcp/dict/items` | 课程 / 考试字典（含别名） |
 | 2 | GET | `/api/mcp/info/detail` | 课程或考试详情 |
 | 3 | GET | `/api/mcp/schedule/free-time` | 计算空闲时间段 |
-| 4 | POST | `/api/mcp/plan/item` | 新增学习计划 |
+| 4 | GET | `/api/mcp/plan/items` | 查询学习计划 |
+| 5 | POST | `/api/mcp/plan/item` | 新增学习计划 |
+| 6 | DELETE | `/api/mcp/plan/item` | 删除学习计划 |
+| 7 | POST | `/api/mcp/dify/workflow/run` | 调用 Dify Agent 工作流 |
 
 ---
 
@@ -136,7 +139,7 @@ GET /api/mcp/info/detail?id=1&type=COURSE
 GET /api/mcp/schedule/free-time
 ```
 
-根据**课程表、考试、已有学习计划**动态计算空闲时段（默认每日可排程窗口 `08:00`–`22:00`）。
+根据**课程表、考试、已有学习计划**动态计算空闲时段。以每日 **00:00–24:00** 为基准，扣除上述占用后，剩余时间均视为空闲；`CANCELLED` 状态的计划不参与占用计算。
 
 | 参数 | 必填 | 说明 |
 |------|:----:|------|
@@ -164,7 +167,55 @@ GET /api/mcp/schedule/free-time?startDate=2026-05-26&endDate=2026-05-30
 
 ---
 
-## 4. 新增学习计划
+## 4. 获取学习计划
+
+```
+GET /api/mcp/plan/items
+```
+
+| 参数 | 必填 | 说明 |
+|------|:----:|------|
+| itemCode | 否 | 计划编码；传入时按编码查单条，忽略日期范围 |
+| startDate | 否 | `yyyy-MM-dd`，默认今天 |
+| endDate | 否 | `yyyy-MM-dd`，默认 startDate 起 6 天内 |
+
+**请求示例：**
+
+```
+GET /api/mcp/plan/items?startDate=2026-06-01&endDate=2026-06-07
+GET /api/mcp/plan/items?itemCode=PLAN-1982736283746570240
+```
+
+**成功 `data` 示例（数组）：**
+
+```json
+[
+  {
+    "itemCode": "PLAN-1982736283746570240",
+    "title": "复习软件测试",
+    "description": "等价类与边界值",
+    "startTime": "2026-06-01 19:00:00",
+    "endTime": "2026-06-01 21:00:00",
+    "status": "PENDING",
+    "resources": [
+      {
+        "resourceName": "测试讲义",
+        "resourceUrl": "https://example.com/st/slides"
+      },
+      {
+        "resourceName": "课堂笔记",
+        "resourceUrl": null
+      }
+    ]
+  }
+]
+```
+
+> 按日期范围查询时，返回与该区间有重叠且状态不为 `CANCELLED` 的计划。
+
+---
+
+## 5. 新增学习计划
 
 ```
 POST /api/mcp/plan/item
@@ -242,6 +293,86 @@ Content-Type: application/json
 
 ---
 
+## 6. 删除学习计划
+
+```
+DELETE /api/mcp/plan/item?itemCode={itemCode}
+```
+
+| 参数 | 必填 | 说明 |
+|------|:----:|------|
+| itemCode | 是 | 计划编码 |
+
+**请求示例：**
+
+```
+DELETE /api/mcp/plan/item?itemCode=PLAN-1982736283746570240
+```
+
+**说明：** 物理删除计划记录、关联 `plan_resources` 及 `time_slots` 中对应条目；删除后该时段不再占用空闲时间计算。
+
+**成功 `data` 示例：** 返回被删除的计划快照（结构同「新增学习计划」响应）。
+
+**失败示例：**
+
+```json
+{
+  "code": 500,
+  "message": "计划不存在",
+  "data": null
+}
+```
+
+---
+
+## 7. 调用 Dify Agent 工作流
+
+```
+POST /api/mcp/dify/workflow/run
+Content-Type: application/json
+```
+
+代理调用 Dify `POST https://api.dify.ai/v1/workflows/run`，**API Key 保存在服务端**，前端无需也不应传递。
+
+| 字段 | 必填 | 说明 |
+|------|:----:|------|
+| inputs | 是 | 工作流输入变量（键名与 Dify 工作流开始节点一致） |
+| responseMode | 否 | `blocking`（默认）/ `streaming`；当前仅支持 `blocking` |
+| user | 否 | 终端用户标识，默认 `smart-scheduler` |
+
+### 请求示例
+
+```json
+{
+  "inputs": {
+    "query": "帮我制定本周复习计划"
+  },
+  "responseMode": "blocking",
+  "user": "user-001"
+}
+```
+
+### 成功 `data` 示例
+
+```json
+{
+  "task_id": "c3800678-a077-43df-a102-53f23ed20b88",
+  "workflow_run_id": "fb47b2e6-5e43-4f90-be01-d5c5a088d156",
+  "data": {
+    "status": "succeeded",
+    "outputs": {
+      "result": "建议周一 19:00-21:00 复习软件测试..."
+    },
+    "elapsed_time": 3.52,
+    "total_tokens": 420
+  }
+}
+```
+
+> 前端对接详见 [AGENT_API.md](./AGENT_API.md)。
+
+---
+
 ## 错误响应示例
 
 **参数错误 400**
@@ -274,6 +405,14 @@ Content-Type: application/json
 }
 ```
 
+```json
+{
+  "code": 500,
+  "message": "计划不存在",
+  "data": null
+}
+```
+
 ---
 
 ## 快速 curl 自测
@@ -288,8 +427,20 @@ curl "http://localhost:50060/api/mcp/info/detail?id=1&type=COURSE"
 # 空闲时间
 curl "http://localhost:50060/api/mcp/schedule/free-time?startDate=2026-05-26&endDate=2026-05-30"
 
+# 查询计划
+curl "http://localhost:50060/api/mcp/plan/items?startDate=2026-06-01&endDate=2026-06-07"
+curl "http://localhost:50060/api/mcp/plan/items?itemCode=PLAN-1982736283746570240"
+
 # 新增计划
 curl -X POST "http://localhost:50060/api/mcp/plan/item" \
   -H "Content-Type: application/json" \
   -d "{\"title\":\"晚间复习\",\"startTime\":\"2026-06-01 19:00:00\",\"endTime\":\"2026-06-01 21:00:00\"}"
+
+# 删除计划
+curl -X DELETE "http://localhost:50060/api/mcp/plan/item?itemCode=PLAN-1982736283746570240"
+
+# 调用 Agent
+curl -X POST "http://localhost:50060/api/mcp/dify/workflow/run" \
+  -H "Content-Type: application/json" \
+  -d "{\"inputs\":{\"query\":\"帮我制定本周复习计划\"},\"user\":\"postman-test\"}"
 ```
